@@ -3,81 +3,10 @@ import os
 import subprocess
 from collections import defaultdict
 import uuid
-from bfutils.workflow import constants
+from batch4py import constants
 import errno
 import time
 
-'''Class that defines a single job in a job-chain workflow'''
-
-class Dependency(object):
-    
-    _supported_dep = [ 'after', 'afterany', 'afterok', 'afternotok', \
-        'before', 'beforeany', 'beforeok', 'beforenotok' ]
-    
-    def __init__(self, base, target, type='afterany' ):
-        
-        if type not in self._supported_dep:
-            raise ValueError("Value for argument 'type' is not a supported \
-                PBS dependency.")
-        
-        if not isinstance( base, Job ):
-            raise TypeError("Argument 'base' is not of type Job")
-        if not isinstance( target, Job ):
-            raise TypeError("Argument 'target' is not of type Job")
- 
-        self._base      = base
-        self._target    = target
-        self._type      = type
-
-    def __eq__( self, other ):
-        if not isinstance( self, type(other) ):
-            return False
-
-        return self._base.get_id() == other._base.get_id() \
-            and self._target.get_id() == other._target.get_id()
-
-    def __hash__(self):
-        return hash((self._base, self._target, self._type))
-    
-    def get_base(self):
-        '''
-**DESCRIPTION**  
-    Get the base of the dependency.  
-**ARGUMENTS**  
-    None  
-**EFFECTS**  
-    None  
-**RETURN**  
-    Job object
-        '''
-        return self._base
-
-    def get_target(self):
-        '''
-**DESCRIPTION**  
-    Get the target of the dependency.  
-**ARGUMENTS**  
-    None  
-**EFFECTS**  
-    None  
-**RETURN**  
-    Job object
-        '''
-        return self._target
-
-    def get_type(self):
-        '''
-**DESCRIPTION**  
-    Get the type of the dependency. Valid values are defined by the system
-    job scheduler.  
-**ARGUMENTS**  
-    None  
-**EFFECTS**  
-    None  
-**RETURN**  
-    str
-        '''
-        return self._type
 
 class Job(object):
     
@@ -262,6 +191,9 @@ class Job(object):
     *dependency* (list of Dependency) -- Specifies all job dependencies.  
     *params* (str) -- Extra command line arguments to add to the scheduler
         call.  
+    *stdin* (stream) -- stdin to scheduler.  
+    *stdout* (stream) -- stdout redirection of scheduler.  
+    *stderr* (stream) -- stderr redirection of scheduler.  
     
 **EFFECTS**  
     Submits job to the queue.  
@@ -271,6 +203,7 @@ class Job(object):
 
         # Perform automatic garbage collection of old PBS files
         # TODO implement this garbage collection
+
 
         dep = defaultdict(list)
         # Gather all the dependencies into a nice dict, perform sanity checks
@@ -301,6 +234,7 @@ class Job(object):
 
                 dep_string += ':{}'.format( sched_id )
 
+            print(dep_string)
             args.append(dep_string)
         
         # Specify job account
@@ -332,6 +266,7 @@ class Job(object):
             print( sub_stdout )
             raise RuntimeError('Process exited with retcode {}'.format(retcode))
 
-        self._sched_id = sub_stdout.strip()
+        self._sched_id = sub_stdout.strip().decode('UTF-8')
 
+        print('\n{}\n'.format(self._sched_id))
         

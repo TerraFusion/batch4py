@@ -1,10 +1,9 @@
 from __future__ import print_function
-from bfutils.workflow import Job
 import subprocess
 import uuid
 from collections import defaultdict
-from Job import Job
-from Job import Dependency
+from .job import Job
+from .dependency import Dependency
 import os
 
 __author__ = 'Landon T. Clipp'
@@ -49,7 +48,6 @@ class JobChain(object):
         if type is None:
             return
 
-
         self._sched_type = sched_type
 
     #====================================================================   
@@ -76,14 +74,14 @@ class JobChain(object):
         self._num_vert += 1
 
     #====================================================================
-    def set_dep( self, base, target, type ):
+    def set_dep( self, base, target, dep_type ):
         '''
 **DESCRIPTION**:  
     Set a dependency between two jobs.  
 **ARGUMENTS**:  
     *base* (Job)   -- A base Job object
     *target* (Job)   -- The job that *base* is dependent on
-    *type* (str)    -- The type of dependency. See Dependency documentation
+    *dep_type* (str)    -- The type of dependency. See Dependency documentation
                        for list of appropriatae types.  
 **EFFECTS**:  
     Creates new Dependency object.
@@ -102,18 +100,22 @@ class JobChain(object):
         # 2 -> 3
         # Means that 1 and 2 come after 0, and 3 comes after 2. Thus, 0
         # must be BEFORE 1 and 2, and 2 is BEFORE 3, etc.
-        if 'before' in type:
-            type = type.replace('before', 'after')
+        if 'before' in dep_type:
+            dep_type = dep_type.replace('before', 'after')
             tmp = base
             base = target
             target = tmp
-        
+       
         # Discard Dependency if it already exists.
-        new_dep = Dependency( base, target, type )
+        new_dep = Dependency( base, target, dep_type )
         try:    
             self._graph[ base ].remove( new_dep )
         except ValueError:
             pass
+
+        # Enforce that base and target have been added with add_job
+        if base not in self._graph or target not in self._graph:
+            raise RuntimeError("Either base or target have not been added to JobChain!")
 
         # Add the dependency
         self._graph[ base ].append( new_dep )
@@ -201,9 +203,9 @@ class JobChain(object):
             job.set_sched( self._sched_type )
             job.submit( self._graph[job] )
        
-        map_str = '' 
-        for job in sort_jobs:    
-            if print_map:
+        if print_map:
+            map_str = '' 
+            for job in sort_jobs:    
                 map_str += '-------------------------------\n'
                 map_str += "PBS: {}\nID: {}\n".format(\
                 os.path.basename( job.get_script() ), job.get_sched_id() )
@@ -212,24 +214,8 @@ class JobChain(object):
                     map_str += '{} {}\n'.format( dep.get_type(), target.get_sched_id())
 
                 map_str += '-------------------------------\n'
-        
-        if print_map:
+            
             return map_str
 
-#        for i in self._graph:
-#            print( '{} '.format(i.num), end='' )
-#            for j in self._graph[ i ]:
-#                print( '{} '.format(j.job_1.num), end='' )
-#            
-#            print('---')
-#        job_order = self.topo_sort()
-#
-#        print("AFTER")
-#        for i in job_order:
-#            print( '{} '.format(i.num), end='' )
-#            for j in self._graph[ i ]:
-#                print( '{} '.format(j.job_1.num), end='' )
-#            
-#            print('---')
 
         
