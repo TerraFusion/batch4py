@@ -1,5 +1,4 @@
 install: true
 script: 
-    - cd ./TerraFusion/batch4py/
     - ./install.sh
 
