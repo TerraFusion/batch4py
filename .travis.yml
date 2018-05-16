@@ -1,4 +1,5 @@
 install: true
+sudo: required
 script: 
     - ./install.sh
 
