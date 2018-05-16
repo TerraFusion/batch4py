@@ -1,0 +1,17 @@
+torque:
+    sys_exe:    qsub
+    nodes:      '-l nodes={}:ppn={}'
+    node_type:  ':{}'
+    account:    '-A'
+    depend:     '-W depend={}'
+    delimit:    ':'
+    supported_dep: 
+        - after
+        - afterany
+        - afterok
+        - afternotok
+        - before
+        - beforeany
+        - beforeok
+        - beforenotok
+
