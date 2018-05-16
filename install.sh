@@ -2,6 +2,8 @@
 
 export PYTHONUSERBASE="${HOME}"
 sudo python setup.py install
-python -c "import batch4py"
 
+echo "testing batch4py importability..."
+python -c "import batch4py"
+echo "done"
 
