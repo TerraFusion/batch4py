@@ -183,7 +183,7 @@ class Job(object):
         return self == dependency.job_0
 
     def submit( self, dependency = None, params = None, stdin=None, stdout=None, \
-                stderr=None ):
+                stderr=None, dry_run = False ):
         '''
 **DESCRIPTION**  
     Submits the job to the system job scheduler.  
@@ -234,7 +234,6 @@ class Job(object):
 
                 dep_string += ':{}'.format( sched_id )
 
-            print(dep_string)
             args.append(dep_string)
         
         # Specify job account
@@ -248,25 +247,33 @@ class Job(object):
         # log files in its current working directory. Just keep them all in
         # one place.
         os.chdir( os.path.dirname( self._job_script ) )
-        subproc = subprocess.Popen( args, stdin=stdin, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
-        retcode = subproc.wait()
 
-        # Retrieve the scheduler ID
-        stderrFile = subproc.stderr
-        sub_stderr = stderrFile.read()
-        stdoutFile = subproc.stdout
-        sub_stdout = stdoutFile.read()
+        if dry_run:
+            print('\nDry run submission.')
 
-        if stdout:
-            stdout.write( sub_stdout )
-        if stderr:
-            stderr.write( sub_stderr )
-        if retcode != 0:
-            print( sub_stderr )
-            print( sub_stdout )
-            raise RuntimeError('Process exited with retcode {}'.format(retcode))
-
-        self._sched_id = sub_stdout.strip().decode('UTF-8')
-
-        print('\n{}\n'.format(self._sched_id))
+        print( ' '.join(args) )
         
+        if not dry_run:
+            subproc = subprocess.Popen( args, stdin=stdin, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
+            retcode = subproc.wait()
+
+            # Retrieve the scheduler ID
+            stderrFile = subproc.stderr
+            sub_stderr = stderrFile.read()
+            stdoutFile = subproc.stdout
+            sub_stdout = stdoutFile.read()
+
+            if stdout:
+                stdout.write( sub_stdout )
+            if stderr:
+                stderr.write( sub_stderr )
+            if retcode != 0:
+                print( sub_stderr )
+                print( sub_stdout )
+                raise RuntimeError('Process exited with retcode {}'.format(retcode))
+
+            self._sched_id = sub_stdout.strip().decode('UTF-8')
+        else:
+            # Use internal identifier instead of scheduler-supplied ID
+            self._sched_id = self._id
+ 

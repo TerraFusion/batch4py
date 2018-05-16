@@ -185,13 +185,14 @@ class JobChain(object):
         return stack
 
     #====================================================================   
-    def submit( self, print_map=False ):
+    def submit( self, print_map=False, **kwargs ):
         '''
 **DESCRIPTION**  
     Submits all Jobs added by add_job() to the system scheduler.  
 **ARGUMENTS**  
     *print_map* (bool)  -- Return a string representation of the job
         dependency map.
+    *kwargs* -- keyword arguments to each individual job.submit() call.  
 **EFFECTS**  
     Submits jobs to the scheduler.  
 **RETURN**  
@@ -201,7 +202,7 @@ class JobChain(object):
         sort_jobs = self.topo_sort()
         for job in sort_jobs:
             job.set_sched( self._sched_type )
-            job.submit( self._graph[job] )
+            job.submit( self._graph[job], **kwargs )
        
         if print_map:
             map_str = '' 
