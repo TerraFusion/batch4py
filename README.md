@@ -66,5 +66,8 @@ batch4py is on PyPi and can be installed using the normal commands:
 `pip install --user batch4py`
 
 ## Compatability
-
 Currently, batch4py is only compatible with TORQUE schedulers.
+
+## Contributions
+Pull requests are welcome. Please submit any issues or feature requests in the GitHub Issues tracker.
+
