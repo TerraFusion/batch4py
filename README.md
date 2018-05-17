@@ -58,6 +58,8 @@ Users may even pass file literals to batch4py (whereby the batch.sh file does no
 '/path/to/install/dir/batch4py/pbs_files/e78d32d0-9299-4735-bbde-05fcb208b5cf.pbs'
 ```
 
+Complete function documentation is maintained in the source code and can be accessed using Python's help() built-in.
+
 ## Installation
 batch4py is on PyPi and can be installed using the normal commands:
 
