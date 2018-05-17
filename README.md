@@ -1,8 +1,8 @@
-[![Build Status](https://travis-ci.com/TerraFusion/batch4py.svg?branch=master)](https://travis-ci.com/TerraFusion/batch4py)
+[![Build Status](https://travis-ci.com/TerraFusion/batch4py.svg?branch=master)](https://travis-ci.com/TerraFusion/batch4py) [![PyPI version](https://badge.fury.io/py/batch4py.svg)](https://badge.fury.io/py/batch4py) 
 # batch4py
 
 ## Introduction
-batch4py is a lightweight Python module that provides a programmatic interface to many common High Performance Computing (HPC) batch schedulers. It also provides a simple way to define directed acyclic graphs (DAG) of job chains.
+batch4py is a lightweight Python 3 module that provides a programmatic interface to many common High Performance Computing (HPC) batch schedulers. It also provides a simple way to define directed acyclic graphs (DAG) of job chains.
 
 A common workflow to submit jobs on a batch scheduler looks something like this:
 
