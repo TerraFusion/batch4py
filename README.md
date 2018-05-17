@@ -39,6 +39,25 @@ for i in range(99):
 chain.submit()
 ```
 
+Users can also submit single jobs very easily:
+
+```
+>>> job = batch4py.Job( '/path/to/pbs/file/batch.sh' )
+>>> job.submit()
+```
+
+Users may even pass file literals to batch4py (whereby the batch.sh file does not exist):
+
+```
+>>> job = batch4py.Job( '''#!/bin/bash
+... #PBS -l nodes=1:ppn=32
+... aprun -n 1 -- echo "Hello world!"
+... ''')
+
+>>> job.get_script()
+'/path/to/install/dir/batch4py/pbs_files/e78d32d0-9299-4735-bbde-05fcb208b5cf.pbs'
+```
+
 ## Installation
 batch4py is on PyPi and can be installed using the normal commands:
 
