@@ -1,3 +1,5 @@
+# This file describes the semantics used for various batch schedulers.
+
 torque:
     sys_exe:    qsub
     nodes:      '-l nodes={}:ppn={}'

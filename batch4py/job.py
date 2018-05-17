@@ -21,8 +21,12 @@ class Job(object):
     *script*  (str) -- Path to file, or string literal for the PBS script.  
     *script_type* (str) -- Choose from { 'file', 'literal' }. Specifies 
         whether script is a path (file) or a string literal. If it is literal,
-        script will be magically printed into a proper text file.  
+        script is interpreted to be a file literal, in which case script
+        will be printed to a file before passing to the scheduler. This file 
+        will be stored in batch4py's installation directory.  
+
     *account* (str)   -- Specify any PBS account to submit the job under.  
+
 **EFFECTS**  
     Submits job to the scheduler  
 **RETURN**
@@ -47,21 +51,25 @@ class Job(object):
         self._account           = account                              #
         #---------------------------------------------------------------
 
-    #====================================================================
     def __hash__(self):
         return hash( self._id )
 
-    #====================================================================
     def get_script( self ):
+        '''
+        Return path of self's scheduler file.
+        '''
+
         return self._job_script
 
-    #====================================================================
     def set_script( self, script, type = None ):
         '''
 **DESCRIPTION**  
     Set the scheduler script to use for this job. Can either pass in a script
     literal or a path to a file. By default, function will attempt to
-    interpret argument 'script' as either a literal or an existing file.  
+    interpret argument 'script' as either a literal or an existing file.
+
+    This function should normally never be called because it is implicitly
+    called in the class's constructor.  
 **ARGUMENTS**  
     *script* (str)  -- Script literal or path to a script  
     *type* (str)   -- Set to 'file' or 'literal' to force interpretation of
@@ -133,8 +141,8 @@ class Job(object):
         '''
 **DESCRIPTION**  
     Return self's ID as given by the system scheduler. Attribute will not
-    contain a valid value until self is submitted to the scheduler and
-    assigned a proper ID.  
+    contain a valid value until self is submitted to the scheduler 
+    using submit().  
 **ARGUMENTS**  
     None  
 **EFFECTS**  

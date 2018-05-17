@@ -12,7 +12,7 @@ if [ $retval -ne 0 ]; then
 fi
 
 echo "Performing batch4py test suite..."
-sudo python tests/import.py
+sudo python tests/simple.py
 retval=$?
 echo "Done"
 
