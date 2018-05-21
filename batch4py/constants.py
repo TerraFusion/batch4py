@@ -4,6 +4,8 @@ __author__ = 'Landon T. Clipp'
 __email__  = 'clipp2@illinois.edu'
 
 PBS_DIR = os.path.join( os.path.dirname( __file__ ), 'pbs_files' )
+CONFIG_PATH = os.path.join( os.path.dirname( __file__ ), 'config.yml' )
+CONFIG = None
 
 max_pbs_num = 5000
 '''maximum number of PBS files to store in PBS_DIR'''

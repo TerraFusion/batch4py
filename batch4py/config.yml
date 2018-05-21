@@ -1,11 +1,14 @@
 # This file describes the semantics used for various batch schedulers.
 
 torque:
-    sys_exe:    qsub
+    exe:        qsub
+    resource:   '-l'
     nodes:      '-l nodes={}:ppn={}'
-    node_type:  ':{}'
+    ppn:        'ppn={}'
+    node_type:  '{}'
     account:    '-A'
     depend:     '-W depend={}'
+    walltime:   '-l walltime={}'
     delimit:    ':'
     supported_dep: 
         - after

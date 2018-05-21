@@ -1,9 +1,7 @@
-from __future__ import print_function
 import subprocess
 import uuid
 from collections import defaultdict
 from .job import Job
-from .dependency import Dependency
 import os
 
 __author__ = 'Landon T. Clipp'
@@ -23,32 +21,15 @@ class JobChain(object):
         # Define the system's scheduler executable. For PBS, this is 'qsub'.
         #----------------------------
         self._sched_type = None #
-        self.set_sched( sched_type )
         #----------------------------
        
-        # ADJACENCY LIST
+        # VERTEX/ADJACENCY LIST
         #------------------------------------
-        self._graph  = defaultdict(list)    #
+        self._job_list  = []    #
         #------------------------------------
    
         self._num_vert = 0
  
-    #====================================================================
-    def set_sched( self, sched_type):
-        '''
-**DESCRIPTION**  
-    Set the job scheduler type.  
-**ARGUMENTS**  
-    *sched_type* (str)    -- Command line executable to submit jobs to  
-**EFFECTS**  
-    Sets self's scheduler command attribute.  
-**RETURN**  
-    None  
-        '''
-        if type is None:
-            return
-
-        self._sched_type = sched_type
 
     #====================================================================   
     
@@ -69,7 +50,7 @@ class JobChain(object):
             raise TypeError("Argument 'job' is not of type Job.")
        
         job.num = self._num_vert 
-        self._graph[ job ] = []
+        self._job_list.append( job )
 
         self._num_vert += 1
 
@@ -106,19 +87,12 @@ class JobChain(object):
             base = target
             target = tmp
        
-        # Discard Dependency if it already exists.
-        new_dep = Dependency( base, target, dep_type )
-        try:    
-            self._graph[ base ].remove( new_dep )
-        except ValueError:
-            pass
-
         # Enforce that base and target have been added with add_job
-        if base not in self._graph or target not in self._graph:
+        if base not in self._job_list or target not in self._job_list:
             raise RuntimeError("Either base or target have not been added to JobChain!")
 
         # Add the dependency
-        self._graph[ base ].append( new_dep )
+        base.depends( target, dep_type )
 
 
     #====================================================================   
@@ -139,7 +113,7 @@ class JobChain(object):
     None
         '''
         if visited[vert] == 'grey':
-            raise RuntimeError("Cycle detected in the job dependency graph!")
+            raise RuntimeError("Cycle detected in JobChain!")
             
         elif visited[vert] == 'black':
             return
@@ -147,8 +121,10 @@ class JobChain(object):
         visited[vert] = 'grey'
         
         # For all of its neighbors, do a recursive search
-        for i in self._graph[vert]:
-            self._topo_sort_util( i.get_target(), visited, stack )
+        for i in vert.get_deps():
+            # get_deps returns [ job, dep_type ]. We just want job.
+            i = i[0]
+            self._topo_sort_util( i, visited, stack )
                  
         # Only after all neighbors have been searched, we will insert the stack
         stack.insert(0, vert)
@@ -174,10 +150,10 @@ class JobChain(object):
         # grey  -- node currently having subtree searched
         # black -- node exited
 
-        for job in self._graph:
+        for job in self._job_list:
             visited[ job ] = 'white'
         
-        for i in self._graph:
+        for i in self._job_list:
             self._topo_sort_util( i, visited, stack )
             
 
@@ -201,18 +177,17 @@ class JobChain(object):
         '''    
         sort_jobs = self.topo_sort()
         for job in sort_jobs:
-            job.set_sched( self._sched_type )
-            job.submit( self._graph[job], **kwargs )
-       
+            job.submit( **kwargs )
+            print('submitting job: {}'.format( job.get_id() ) ) 
+        
         if print_map:
             map_str = '' 
             for job in sort_jobs:    
                 map_str += '-------------------------------\n'
-                map_str += "PBS: {}\nID: {}\n".format(\
+                map_str += "Script: {}\nID: {}\n".format(\
                 os.path.basename( job.get_script() ), job.get_sched_id() )
-                for dep in self._graph[job]:
-                    target = dep.get_target()
-                    map_str += '{} {}\n'.format( dep.get_type(), target.get_sched_id())
+                for dep in job.get_deps():
+                    map_str += '{} {}\n'.format( dep[1], dep[0].get_sched_id())
 
                 map_str += '-------------------------------\n'
             

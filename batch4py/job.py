@@ -3,12 +3,13 @@ import os
 import subprocess
 from collections import defaultdict
 import uuid
-from batch4py import constants
 import errno
 import time
+from abc import ABC, abstractmethod
+from batch4py import constants
+import subprocess
 
-
-class Job(object):
+class Job(ABC):
     
     _valid_sched = { 'pbs' : 'qsub' }
     '''Scheduler name to executable mappings'''
@@ -37,8 +38,8 @@ class Job(object):
 
         # JOB SCRIPT
         #----------------------------------------------------------
-        self._job_script    = None                                #
-        self.set_script( script, script_type )                    #
+        self.script    = None                                #
+        self._set_script( script, script_type )                    #
         #----------------------------------------------------------
 
         # SCHEDULER VARIABLES
@@ -48,20 +49,34 @@ class Job(object):
         self._sched_type        = None                                 #
         # override_sched changes behavior of sched_type interpretation #
         self._sched_override    = False                                #
-        self._account           = account                              #
         #---------------------------------------------------------------
 
     def __hash__(self):
         return hash( self._id )
 
+    @abstractmethod
+    def set_config( self ):
+        ''' 
+        Sets configuration parameters (nodes, walltime, etc.) for the job
+        '''
+        
+        pass
+
+    @abstractmethod
+    def submit( self, dependency = None, params = None, stdin=None, stdout=None, 
+                stderr=None, dry_run = False ):
+        ''' Submits the job to the system job scheduler.  '''
+        pass 
+    
+    
     def get_script( self ):
         '''
         Return path of self's scheduler file.
         '''
 
-        return self._job_script
+        return self.script
 
-    def set_script( self, script, type = None ):
+    def _set_script( self, script, type = None ):
         '''
 **DESCRIPTION**  
     Set the scheduler script to use for this job. Can either pass in a script
@@ -103,10 +118,9 @@ class Job(object):
 
                 script = script_path
 
-        self._job_script = os.path.abspath( script )
+        self.script = os.path.abspath( script )
 
 
-    #====================================================================
     def get_id( self ):
         '''
 **DESCRIPTION**  
@@ -119,8 +133,7 @@ class Job(object):
     uuid object
         '''
         return self._id
-        
-    #====================================================================
+
     def set_sched_id( self, id ):
         '''
 **DESCRIPTION**  
@@ -136,7 +149,6 @@ class Job(object):
             raise TypeError("Argument 'id' is not a str.")
         self._sched_id = id
 
-    #====================================================================
     def get_sched_id( self ):
         '''
 **DESCRIPTION**  
@@ -150,111 +162,96 @@ class Job(object):
 **RETURN**  
     Scheduler ID (str)
         '''
+        if self._sched_id is None:
+            raise RuntimeError("job hasn't been submitted to the queue yet.")
+
         return self._sched_id
 
-    #====================================================================
-    def set_sched( self, type, override=False ):
-        '''
-**DESCRIPTION**  
-    Set the system scheduler type. Typical schedulers may be: pbs, slurm, moab.  
-**ARGUMENTS**  
-    *type* (str)    -- Type of scheduler to use. Supported values: pbs  
-    *override* (bool)   -- If true, will use string passed in type as a
-        command line literal. i.e. *type* must be an actual terminal command
-        used for submitting jobs. If false, type will be internally mapped to
-        valid scheduler command-line semantics.  
-**EFFECTS**  
-    Modifies private attribute.  
-**RETURN**  
-    None
-        '''
 
+class TORQUE(Job):
 
-        if not override and type not in self._valid_sched:
-            raise ValueError('Invalid scheduler type.')
-
-        self._sched_type = type
-        self._sched_override = override
-        
-    #====================================================================
-    def is_base( self, dependency ):
-        '''
-**DESCRIPTION**  
-    Checks if self is the base of the dependency  
-**ARGUMENTS**  
-    *dependency* (Dependency)   -- The dependency to check if self is the base of  
-**EFFECTS**  
-    None  
-**RETURN**  
-    True/False
-        '''
-        return self == dependency.job_0
-
-    def submit( self, dependency = None, params = None, stdin=None, stdout=None, \
-                stderr=None, dry_run = False ):
-        '''
-**DESCRIPTION**  
-    Submits the job to the system job scheduler.  
-**ARGUMENTS**  
-    *dependency* (list of Dependency) -- Specifies all job dependencies.  
-    *params* (str) -- Extra command line arguments to add to the scheduler
-        call.  
-    *stdin* (stream) -- stdin to scheduler.  
-    *stdout* (stream) -- stdout redirection of scheduler.  
-    *stderr* (stream) -- stderr redirection of scheduler.  
+    config = constants.CONFIG['torque']
     
-**EFFECTS**  
-    Submits job to the queue.  
-**RETURN**  
-    None
+    def __init__(self, script, script_type = None, name = None, 
+                 nodes = None, ppn = None, walltime = None, 
+                 node_type = None, account = None ):
+
+        super().__init__( script, script_type )
+
+        self.command = ''
+        self.dependents = []
+        self.nodes = nodes
+        self.ppn = ppn
+        self.walltime = walltime
+        self.account = account
+        self.node_type = node_type
+        
+        self.allowed_keys = [ a for a in dir(self) if not a.startswith('__') ]
+
+    def set_config( self, **kwargs ):
+        
+        # allowed_keys will only be atrributes explicitly defined in __init__
+        for k, v in kwargs.items():
+            if k in self.allowed_keys:
+                self.__dict__.update( {k:v} )
+            else:
+                raise KeyError('{} not a valid configuration parameter.'.format( k ) )
+
+    def depends( self, target, type ):
+        '''
+        Set a dependency for this job.
+        '''
+        if type not in self.config['supported_dep']:
+            raise ValueError('type not supported.')
+
+        self.dependents.append( [target, type] )
+
+    def get_deps( self ):
+        '''
+        Return self's dependency list.
         '''
 
-        # Perform automatic garbage collection of old PBS files
-        # TODO implement this garbage collection
+        return self.dependents
 
-
+    def submit( self, dry_run = False ):
+         
         dep = defaultdict(list)
-        # Gather all the dependencies into a nice dict, perform sanity checks
-        for i in dependency:
-            if self is not i.get_base():
-                raise RuntimeError("Listed a dependency in which self is not the base!")
-            dep[ i.get_type() ].append( i.get_target() )
-
         # Create the command line arguments
         args = []
         # append executable name
         if self._sched_override:
             args.append( self._sched_type )
         else:
-            args.append( self._valid_sched[ self._sched_type ] )
+            args.append( self.config['exe'] )
+
 
         # Add PBS dependencies
-        for dep_type in dep:
-            args.append( '-W' )
-            dep_string = 'depend={}'.format( dep_type )
-            for job in dep[dep_type]:
-                sched_id = job.get_sched_id()
+        for dep in self.dependents:
+            args.append( self.config['depend'].format( dep[0].get_sched_id() + self.config['delimit'] + dep[1] ) )
 
-                if sched_id is None:
-                    raise ValueError(\
-                    'Job {} has not been submitted to the scheduler!'\
-                    .format( job ) )
-
-                dep_string += ':{}'.format( sched_id )
-
-            args.append(dep_string)
+        # Add node requirements
+        if self.nodes:
+            args.append( self.config['resource'] )
+            args.append( 'nodes={}'.format( self.nodes ) )
+        if self.ppn:
+            args.append( self.config['resource'] )
+            args.append( 'ppn={}'.format( self.ppn ) + 
+                '{}'.format(self.config['delimit'] + self.node_type) if self.node_type
+                else '' )
+        if self.walltime:
+            args.append( self.config['resource'] )
+            args.append( self.walltime )
+        if self.account:
+            args.append( self.config['account'] )
+            args.append( self.account )
         
-        # Specify job account
-        if self._account:
-            args.append('-A')
-            args.append( self._account )
 
-        args.append( self._job_script )
+        args.append( self.script )
 
         # We cd to the location of the PBS script because PBS will print out
         # log files in its current working directory. Just keep them all in
         # one place.
-        os.chdir( os.path.dirname( self._job_script ) )
+        os.chdir( os.path.dirname( self.script ) )
 
         if dry_run:
             print('\nDry run submission.')
@@ -283,5 +280,4 @@ class Job(object):
             self._sched_id = sub_stdout.strip().decode('UTF-8')
         else:
             # Use internal identifier instead of scheduler-supplied ID
-            self._sched_id = self._id
- 
+            self._sched_id = str(self._id)

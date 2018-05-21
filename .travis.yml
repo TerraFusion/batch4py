@@ -1,5 +1,16 @@
-install: true
 sudo: required
+language: python
+python:
+    - "3.5"
+install: 
+    - pip install pyyaml
+    - pip install pytest
+    - pip install setuptools
+    - export PYTHONUSERBASE="${HOME}"
+    - export PYTHONPATH="$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages"
+    - python --version
+    - sudo python setup.py install --user
+    - python -c "import sys; print( sys.path )"
 script: 
-    - ./install.sh
+    - pytest ./tests
 
