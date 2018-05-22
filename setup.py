@@ -1,9 +1,9 @@
 #from distutils.core import setup
 from setuptools import setup
-
+import os
 setup(
     name='batch4py',
-    version='0.1.0',
+    version='0.2.0',
     author='Landon T. Clipp',
     author_email='clipp2@illinois.edu',
     packages=['batch4py'],
@@ -14,5 +14,9 @@ setup(
     install_requires=[ 'pyyaml' ],
     url = 'https://github.com/TerraFusion/batch4py',
     download_url='https://github.com/TerraFusion/batch4py/archive/0.1.0.tar.gz',
-    keywords = ['batch', 'torque', 'pbs', 'pbs-torque', 'hpc', 'python', 'python3', 'cluster' ],
+    keywords = ['batch', 'torque', 'pbs', 'pbs-torque', 'hpc', 'python', 'python3', 'cluster',
+        'scheduler', 'schedule' ],
+    package_data = {'batch4py': [ os.path.join( '.', 'batch4py', 'config.yml') ] },
+    include_package_data = True,
 )
+
