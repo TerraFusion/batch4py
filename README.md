@@ -27,7 +27,7 @@ Performing these steps manually is fine for a handful of jobs, but doing it for 
 job_list = []  
 chain = batch4py.JobChain( 'pbs' )
 for i in range(100):
-    new_job = batch4py.Job( list_of_job_files[i] )
+    new_job = batch4py.job.TORQUE( list_of_job_files[i] )
     job_list.append( new_job )
     chain.add_job( new_job )
     
