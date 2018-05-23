@@ -51,6 +51,8 @@ class Job(ABC):
         self._sched_override    = False                                #
         #---------------------------------------------------------------
 
+        self._extra_cmd = []
+
     def __hash__(self):
         return hash( self._id )
 
@@ -68,7 +70,30 @@ class Job(ABC):
         ''' Submits the job to the system job scheduler.  '''
         pass 
     
-    
+   
+    def add_param( self, params ):
+        '''
+        Add additional command-line parameters to the scheduler.
+
+        params is a list of str, where each str is a single 
+        command-line parameter to pass to the scheduler executable.
+        Multiple parameters should NOT be separated by spaces, but
+        by separate entries into the list:
+
+        ex:
+
+        ls -l . --> params = ['ls', '-l', '.']
+
+        Each parameter is sanitized by encapsulating in single quotes.
+        '''
+
+        # Arbitrary code execution is always dangerous. Let's sanitize
+        # each parameter by surrounding it with single quotes.
+
+        for val in params:
+            new_val = "'" + val.strip() + "'"
+            self._extra_cmd.append( new_val )
+
     def get_script( self ):
         '''
         Return path of self's scheduler file.
@@ -224,6 +249,8 @@ class TORQUE(Job):
         else:
             args.append( self.config['exe'] )
 
+        # Add extra commands
+        args = args + self._extra_cmd
 
         # Add PBS dependencies
         for dep in self.dependents:

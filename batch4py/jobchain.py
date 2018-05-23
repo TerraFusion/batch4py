@@ -11,22 +11,10 @@ class JobChain(object):
     '''Class that manages a chain of Jobs'''
 
     
-    def __init__( self, sched_type, **kwargs ):
-        # Set the user-defined kwargs as attributes. Nothing in kwargs
-        # should be used by the class itself. Only for user convenience.
-        for key, value in kwargs.items():
-            setattr( self, key, value )
+    def __init__( self  ):
 
-        # SCHEDULER DEFINITION
-        # Define the system's scheduler executable. For PBS, this is 'qsub'.
-        #----------------------------
-        self._sched_type = None #
-        #----------------------------
-       
         # VERTEX/ADJACENCY LIST
-        #------------------------------------
         self._job_list  = []    #
-        #------------------------------------
    
         self._num_vert = 0
  
@@ -87,6 +75,10 @@ class JobChain(object):
             base = target
             target = tmp
        
+        # TODO
+        # The check below might be a quadratic runtime (i.e., very bad).
+        # Consider removing it, or maybe replacing job_list with a dict.
+
         # Enforce that base and target have been added with add_job
         if base not in self._job_list or target not in self._job_list:
             raise RuntimeError("Either base or target have not been added to JobChain!")
