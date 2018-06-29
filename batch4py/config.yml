@@ -10,6 +10,7 @@ torque:
     depend:     '-W depend={}'
     walltime:   '-l walltime={}'
     delimit:    ':'
+    job_name:   '-N'
     supported_dep: 
         - after
         - afterany

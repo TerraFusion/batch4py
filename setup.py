@@ -3,7 +3,7 @@ from setuptools import setup
 import os
 setup(
     name='batch4py',
-    version='0.2.2',
+    version='0.2.3',
     author='Landon T. Clipp',
     author_email='clipp2@illinois.edu',
     packages=['batch4py'],
