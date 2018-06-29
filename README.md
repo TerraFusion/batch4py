@@ -42,14 +42,14 @@ chain.submit()
 Users can also submit single jobs very easily:
 
 ```
->>> job = batch4py.Job( '/path/to/pbs/file/batch.sh' )
+>>> job = batch4py.job.TORQUE( '/path/to/pbs/file/batch.sh' )
 >>> job.submit()
 ```
 
 Users may even pass file literals to batch4py (whereby the batch.sh file does not exist):
 
 ```
->>> job = batch4py.Job( '''#!/bin/bash
+>>> job = batch4py.job.TORQUE( '''#!/bin/bash
 ... #PBS -l nodes=1:ppn=32
 ... aprun -n 1 -- echo "Hello world!"
 ... ''')
