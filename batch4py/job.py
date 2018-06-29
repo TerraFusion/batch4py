@@ -51,6 +51,8 @@ class Job(ABC):
         self._sched_override    = False                                #
         #---------------------------------------------------------------
 
+        self._extra_cmd = []
+
     def __hash__(self):
         return hash( self._id )
 
@@ -68,8 +70,30 @@ class Job(ABC):
         ''' Submits the job to the system job scheduler.  '''
         pass 
     
-    
-    def get_script( self ):
+   
+    def add_param( self, params ):
+        '''
+        Add additional command-line parameters to the scheduler.
+
+        params is a list of str, where each str is a single 
+        command-line parameter to pass to the scheduler executable.
+        Multiple parameters should NOT be separated by spaces, but
+        by separate entries into the list:
+
+        ex:
+
+        ls -l . --> params = ['ls', '-l', '.']
+
+        Each parameter is sanitized by encapsulating in single quotes.
+        '''
+
+        # Arbitrary code execution is always dangerous. Let's sanitize
+        # each parameter by surrounding it with single quotes.
+
+        for val in params:
+            new_val = "'" + val.strip() + "'"
+            self._extra_cmd.append( new_val )
+
         '''
         Return path of self's scheduler file.
         '''
@@ -120,6 +144,12 @@ class Job(ABC):
 
         self.script = os.path.abspath( script )
 
+    def get_script(self):
+        '''
+        Return path of self's scheduler file.
+        '''
+
+        return self.script
 
     def get_id( self ):
         '''
@@ -185,7 +215,8 @@ class TORQUE(Job):
         self.walltime = walltime
         self.account = account
         self.node_type = node_type
-        
+        self.name = name
+
         self.allowed_keys = [ a for a in dir(self) if not a.startswith('__') ]
 
     def set_config( self, **kwargs ):
@@ -213,8 +244,16 @@ class TORQUE(Job):
 
         return self.dependents
 
-    def submit( self, dry_run = False ):
-         
+    def submit( self, dry_run = False, stdout=None, stderr=None ):
+        """
+        Submit the job to the scheduler.
+        dry_run -- If set to True, job will not actually be submitted to the scheduler.
+        stdout -- File object for scheduler call's stdout
+        stderr -- File object for scheduler call's stderr
+
+        If stdout/stderr is not supplied, the corresponding output stream will
+        simply be printed.
+        """
         dep = defaultdict(list)
         # Create the command line arguments
         args = []
@@ -224,10 +263,12 @@ class TORQUE(Job):
         else:
             args.append( self.config['exe'] )
 
+        # Add extra commands
+        args = args + self._extra_cmd
 
         # Add PBS dependencies
         for dep in self.dependents:
-            args.append( self.config['depend'].format( dep[0].get_sched_id() + self.config['delimit'] + dep[1] ) )
+            args.append( self.config['depend'].format( dep[1] + self.config['delimit'] + dep[0].get_sched_id() ) )
 
         # Add node requirements
         if self.nodes:
@@ -244,7 +285,9 @@ class TORQUE(Job):
         if self.account:
             args.append( self.config['account'] )
             args.append( self.account )
-        
+        if self.name:
+            args.append( self.config['job_name'] )
+            args.append( self.name )
 
         args.append( self.script )
 
@@ -259,7 +302,7 @@ class TORQUE(Job):
         print( ' '.join(args) )
         
         if not dry_run:
-            subproc = subprocess.Popen( args, stdin=stdin, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
+            subproc = subprocess.Popen( args, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
             retcode = subproc.wait()
 
             # Retrieve the scheduler ID
@@ -269,12 +312,15 @@ class TORQUE(Job):
             sub_stdout = stdoutFile.read()
 
             if stdout:
-                stdout.write( sub_stdout )
+                stdout.write( str( sub_stdout, 'utf-8') )
+            else:
+                print(str(sub_stdout, 'utf-8'))
             if stderr:
-                stderr.write( sub_stderr )
+                stderr.write( str(sub_stderr, 'utf-8') )
+            else:
+                print(str(sub_stderr, 'utf-8'))
+
             if retcode != 0:
-                print( sub_stderr )
-                print( sub_stdout )
                 raise RuntimeError('Process exited with retcode {}'.format(retcode))
 
             self._sched_id = sub_stdout.strip().decode('UTF-8')

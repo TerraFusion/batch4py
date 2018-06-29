@@ -7,10 +7,7 @@ class TestJobTORQUE(object):
         job1 = batch4py.job.TORQUE( "./batch.pbs" )
         job2 = batch4py.job.TORQUE( "./batch.pbs" )
 
-        print( job1.get_id() )
-        print( job2.get_id() )
-
-        chain = batch4py.JobChain( 'pbs' )
+        chain = batch4py.JobChain()
 
         chain.add_job(job1)
         chain.add_job(job2)
@@ -22,7 +19,7 @@ class TestJobTORQUE(object):
         job1 = batch4py.job.TORQUE( "./batch.pbs" )
         job2 = batch4py.job.TORQUE( "./batch.pbs" )
         job3 = batch4py.job.TORQUE( "./batch.pbs" )
-        chain = batch4py.JobChain( 'pbs' )
+        chain = batch4py.JobChain()
 
         chain.add_job(job1)
         chain.add_job(job2)
