@@ -7,7 +7,7 @@ torque:
     ppn:        'ppn={}'
     node_type:  '{}'
     account:    '-A'
-    depend:     '-W depend={}'
+    attribute:  '-W'
     walltime:   '-l walltime={}'
     delimit:    ':'
     job_name:   '-N'

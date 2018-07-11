@@ -266,9 +266,31 @@ class TORQUE(Job):
         # Add extra commands
         args = args + self._extra_cmd
 
+        deptype = {}
         # Add PBS dependencies
-        for dep in self.dependents:
-            args.append( self.config['depend'].format( dep[1] + self.config['delimit'] + dep[0].get_sched_id() ) )
+        if self.dependents:
+            args.append( self.config['attribute'] )
+            for dep in self.dependents:
+                
+                # Add list to this key if we haven't seen it before
+                if dep[1] not in deptype:
+                    deptype[dep[1]] = []
+
+                # Append to the list
+                deptype[ dep[1] ].append( dep[0] )
+
+            dep_str = ""
+            for type in deptype:
+                if dep_str:
+                    dep_str = dep_str + ","
+                else:
+                    dep_str = "depend="
+
+                dep_str = dep_str + type
+                for dep in deptype[type]:
+                    dep_str = "{}{}{}".format( dep_str, self.config['delimit'], dep.get_sched_id())
+
+            args.append( dep_str )
 
         # Add node requirements
         if self.nodes:
